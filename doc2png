@@ -1,0 +1,88 @@
+#!/usr/bin/perl
+# $Id$
+use strict;
+
+=head1 NAME
+
+doc2png - extract image files from Microsoft Word documents
+
+=head1 SYNOSPIS
+
+doc2png file.doc [ file2.doc ... ]
+
+=head1 DESCRIPTION
+
+Apparently, Microsoft Word documents store internal images in
+PNG format, which has clear markers for the beginning and
+end of image data.  This script extracts everything between
+those markers and assumes it is an image.  The script does
+no processing on the data, however.
+
+Once extracted, the script munges the input file name to 
+strip the extension, then uses that for the base name of
+each image to which it appends a number and the extension
+.png.  It saves the files in the current working directory.
+
+=head1 TO DO
+
+Should I need to use this much more, I might add:
+
+	* command line switch for a destination directory
+	* command line switch for a base file name
+
+=head1 SOURCE AVAILABILITY
+
+This source is part of a SourceForge project which always has the
+latest sources in CVS, as well as all of the previous releases.
+
+	https://sourceforge.net/projects/brian-d-foy/
+
+If, for some reason, I disappear from the world, one of the other
+members of the project can shepherd this module appropriately.
+
+=head1 THANKS TO
+
+Ben Wong <benjamin.wong@cc.gatech.edu>, who wrote a C version
+<http://www.cc.gatech.edu/~bbb/2001/doc2png/> that I couldn't
+compile on MacOS X.
+
+=head1 AUTHOR
+
+brian d foy, E<lt>bdfoy@cpan.orgE<gt>
+
+=head1 COPYRIGHT
+
+Copyright 2002, brian d foy, All rights reserved
+
+You may use and redistribute this under the same terms as
+Perl itself.
+
+=cut
+
+my $HEADER = "\211PNG";
+my $FOOTER = "IEND\xAEB`\x82";
+
+foreach my $file ( @ARGV )
+	{
+	print "Extracting $file\n";
+	(my $image_base = $file) =~ s/(.*)\..*/$1/;
+		
+	my $data = do { local $/; open my( $fh ), $file; <$fh> };
+	
+	my $count = 0;
+	
+	while( $data =~ m/($HEADER.*?$FOOTER)/sg )
+		{
+		my $image      = $1;
+		$count++;
+		my $image_name = "$image_base.$count.png";
+		open my $fh, "> $image_name" or warn "$image_name: $!", next;
+		print "Writing $image_name: ", length($image), " bytes\n";
+		print $fh $image;
+		close $fh;
+		}
+		
+	}
+	
+
+__END__
